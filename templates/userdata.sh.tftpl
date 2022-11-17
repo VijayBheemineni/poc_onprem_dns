@@ -1,0 +1,64 @@
+#!/bin/bash
+
+set -e
+
+# Install Bind9
+apt update -y
+apt install bind9 bind9utils bind9-doc -y
+
+# Create Bind Server Options file
+cat > /etc/bind/named.conf.options <<EOF
+acl trustedclients {
+        localhost;
+        localnets;
+	    ${ONPREM_CIDR};
+        ${AWSVPC_CIDR};
+};
+options {
+	directory "/var/cache/bind";
+	allow-query { trustedclients; };
+        allow-query-cache { trustedclients; };
+        allow-recursion { trustedclients; };
+        forwarders {
+	 	8.8.8.8;
+		8.8.4.4;
+	};
+        dnssec-validation no;
+};
+EOF
+
+
+# Create Bind Server Options file
+cat > /etc/bind/named.conf.local <<EOF
+zone "${ONPREM_DNS_DOMAIN}" {
+        type master;
+        file "/etc/bind/db.${ONPREM_DNS_DOMAIN}";
+};
+
+zone "${AWS_DNS_PRIVATE_DOMAIN}" {
+        type forward;
+        forward only;
+        forwarders { ${AWS_ROUTE53_INBOUND_ENDPOINT_IP1}; ${AWS_ROUTE53_INBOUND_ENDPOINT_IP2};};
+};
+EOF
+
+# Create ONPREM Domain Zone file
+privateip_address=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
+
+cat > /etc/bind/db.${ONPREM_DNS_DOMAIN} <<EOF
+\$TTL	86400
+@	IN	SOA	ns1.${ONPREM_DNS_DOMAIN}. dnsadmin.${ONPREM_DNS_DOMAIN}. (
+			      1		; Serial
+			 604800		; Refresh
+			  86400		; Retry
+			2419200		; Expire
+			  86400 )	; Negative Cache TTL
+;
+@	IN	NS	ns1.${ONPREM_DNS_DOMAIN}.
+@       IN      A       $privateip_address
+ns1     IN      A       $privateip_address
+${ONPREM_DOMAIN_DUMMYRESOURCE_NAME}     IN      A       ${ONPREM_DOMAIN_DUMMYRESOURCE_IPADDRESS}
+EOF
+
+# Restart Bind Server
+systemctl restart bind9
