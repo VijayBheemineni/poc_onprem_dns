@@ -4,7 +4,7 @@ resource "aws_security_group" "route53_resolver_inbound" {
   vpc_id      = var.awsvpc_id
 
   ingress {
-    description = "DNS from AWS VPC"
+    description = "DNS from OnPrem VPC"
     from_port   = 53
     to_port     = 53
     protocol    = "tcp"
@@ -12,7 +12,7 @@ resource "aws_security_group" "route53_resolver_inbound" {
   }
 
   ingress {
-    description = "DNS from AWS VPC"
+    description = "DNS from OnPrem VPC"
     from_port   = 53
     to_port     = 53
     protocol    = "udp"
@@ -52,7 +52,7 @@ resource "aws_route53_resolver_endpoint" "onprem_inbound" {
 
 resource "aws_security_group" "route53_resolver_outbound" {
   name        = "Route53 Resolver Outbound Endpoint"
-  description = "Allow DNS queries AWS to OnPrem"
+  description = "Allow DNS queries from AWS to OnPrem"
   vpc_id      = var.awsvpc_id
 
   egress {

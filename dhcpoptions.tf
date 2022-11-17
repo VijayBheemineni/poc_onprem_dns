@@ -6,9 +6,9 @@ resource "aws_vpc_dhcp_options" "onprem" {
   }
 }
 
+# Forced to create this resource because DHCP options should be attached to VPC only after Bind Server EC2 instance comes up.
 resource "time_sleep" "vpc_dhcp_association_waittime" {
   depends_on = [aws_instance.bind_dns]
-
   create_duration = "60s"
 }
 
@@ -19,10 +19,9 @@ resource "aws_vpc_dhcp_options_association" "onprem_dns_resolver" {
   depends_on = [time_sleep.vpc_dhcp_association_waittime]
 }
 
-
+# Forced to use this option because EC2 instance must be restarted to pickup updated DHCP configuration which contains Bind DNS Server information.
 resource "time_sleep" "restart_waittime" {
   depends_on = [aws_vpc_dhcp_options_association.onprem_dns_resolver]
-
   create_duration = "60s"
 }
 

@@ -6,9 +6,9 @@ data "aws_vpc" "awsvpc" {
   id = var.awsvpc_id
 }
 
-resource "aws_security_group" "allow_dns_query" {
+resource "aws_security_group" "bindserver" {
   name        = "Bind DNS Server SG"
-  description = "Allow ssh inbound traffic"
+  description = "Allow ssh and DNS inbound traffic"
   vpc_id      = var.onprem_vpc_id
 
   ingress {
@@ -36,7 +36,7 @@ resource "aws_security_group" "allow_dns_query" {
   }
 
   ingress {
-    description = "DNS from AWS VPC"
+    description = "DNS from OnPrem VPC"
     from_port   = 53
     to_port     = 53
     protocol    = "tcp"
@@ -44,7 +44,7 @@ resource "aws_security_group" "allow_dns_query" {
   }
 
   ingress {
-    description = "DNS from AWS VPC"
+    description = "DNS from OnPrem VPC"
     from_port   = 53
     to_port     = 53
     protocol    = "udp"
@@ -67,7 +67,7 @@ resource "aws_instance" "bind_dns" {
   instance_type               = var.ubuntu_bindserver_instance_type
   key_name                    = var.ssh_keyname
   subnet_id                   = var.bindserver_subnet_id
-  vpc_security_group_ids      = [aws_security_group.allow_dns_query.id]
+  vpc_security_group_ids      = [aws_security_group.bindserver.id]
   user_data = templatefile(
     "${path.module}/templates/userdata.sh.tftpl",
     {
